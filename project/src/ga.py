@@ -5,7 +5,7 @@ import numpy as np
 
 class GeneticAlgorithm:
 
-  def __init__(self, series, M, ks):
+  def __init__(self, series, M, ks, verbose=False):
     self.Xbest = Individual(series, ks)
     self.series = series
     self.ks = ks
@@ -20,6 +20,7 @@ class GeneticAlgorithm:
 
     self.rounds = 1000
     self.max_stalls = 100
+    self.verbose = verbose
   
   def fitness(self, X):
     return g(X) + self.alpha * p(X.k)
@@ -35,15 +36,29 @@ class GeneticAlgorithm:
   def run(self):
     stalls = 0
     for i in range(self.rounds):
+      if self.verbose:
+        print('Running round {} out of {}...\nCurrent population:\n'.format(i,self.rounds))
+        for ind in self.pop:
+          print(ind)
+
       operation = np.random.choice(3, p=make_prob_list([self.popc, self.puc, self.pmu]))
+
       if operation == 0:
         Xi, Xj = self.get_individual(2)
         C = Individual(self.series, self.ks, Xi, Xj, crossover='uniform')
+        if self.verbose:
+          print('Selected operation is uniform crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi, Xj, C))
       elif operation == 1:
         Xi, Xj = self.get_individual(2)
         C = Individual(self.series, self.ks, Xi, Xj, crossover='one-point')
+
+        if self.verbose:
+          print('Selected operation is one-point crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi, Xj, C))
       else:
-        C = self.get_individual(1).mutation(self.pm, self.pb)
+        Xi = self.get_individual(1)
+        C = Xi.mutation(self.pm, self.pb)
+        if self.verbose:
+          print('Selected operation is mutation.\n Mutated {} into {}'.format(Xi, C))
 
       Xmin = min(self.pop, key=lambda i: self.fitness(i))
       replace = self.fitness(C) / (self.fitness(C) + self.fitness(Xmin))
@@ -52,6 +67,8 @@ class GeneticAlgorithm:
 
       if choice == 0:
         Xmin = C
+        if self.verbose:
+          print('Replaced minimum-fitness strand with {}'.format(C))
 
       Xmax = max(self.pop, key=lambda i: self.fitness(i))
       if self.fitness(Xmax) > self.fitness(self.Xbest):
@@ -114,8 +131,12 @@ def p(k):
 
 def area(X, j=None):
   if j == None:
-    return (X.b[0] - X.b[X.k-1]) * (max(X.series) - min(X.series))
+    return (len(X.B)) * (max(X.series) - min(X.series))
   else:
-    m0 = min(list(map(X.y, range(X.b[j],X.b[j+1]))))
-    m1 = max(list(map(X.y, range(X.b[j],X.b[j+1]))))
-    return (X.b[j+1] - X.b[j]) * (m1 - m0)
+    try:
+      m0 = min(list(map(X.y, range(X.b[j],X.b[j+1]))))
+      m1 = max(list(map(X.y, range(X.b[j],X.b[j+1]))))
+      return (X.b[j+1] - X.b[j]) * (m1 - m0)
+    except ValueError as e:
+      print(X)
+      raise e
