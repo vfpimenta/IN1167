@@ -1,4 +1,5 @@
 import random
+import string
 import numpy as np
 
 # =============================================================================
@@ -7,6 +8,7 @@ class GeneticAlgorithm:
 
   def __init__(self, series, M, ks, verbose=False):
     self.Xbest = Individual(series, ks)
+    self.fitseries = list()
     self.series = series
     self.ks = ks
 
@@ -27,7 +29,7 @@ class GeneticAlgorithm:
 
   def get_individual(self, n):
     probabilities = list(map(lambda i: self.fitness(i), self.pop))
-    choices = np.random.choice(len(self.pop), n, p=make_prob_list(probabilities))
+    choices = np.random.choice(len(self.pop), n, p=make_prob_list(probabilities), replace=False)
     if n > 1:
       return tuple([self.pop[i] for i in choices])
     elif n == 1:
@@ -35,38 +37,46 @@ class GeneticAlgorithm:
 
   def run(self):
     stalls = 0
+    exit_status = 0
+
     for i in range(self.rounds):
       if self.verbose:
-        print('Running round {} out of {}...\nCurrent population:\n'.format(i,self.rounds))
+        print('Running round {} out of {}...\nCurrent population:\n'.format(i+1,self.rounds))
         for ind in self.pop:
-          print(ind)
+          print('{} :: fitness={}'.format(ind,str(self.fitness(ind))))
 
       operation = np.random.choice(3, p=make_prob_list([self.popc, self.puc, self.pmu]))
 
       if operation == 0:
         Xi, Xj = self.get_individual(2)
-        C = Individual(self.series, self.ks, Xi, Xj, crossover='uniform')
+        C = Individual(self.series, self.ks, Xi, Xj, method='uc')
         if self.verbose:
-          print('Selected operation is uniform crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi, Xj, C))
+          print('Selected operation is uniform crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi.id, Xj.id, C))
       elif operation == 1:
         Xi, Xj = self.get_individual(2)
-        C = Individual(self.series, self.ks, Xi, Xj, crossover='one-point')
+        C = Individual(self.series, self.ks, Xi, Xj, method='opc')
 
         if self.verbose:
-          print('Selected operation is one-point crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi, Xj, C))
+          print('Selected operation is one-point crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi.id, Xj.id, C))
       else:
         Xi = self.get_individual(1)
-        C = Xi.mutation(self.pm, self.pb)
+        C = Individual(self.series, self.ks, Xi, method='m', pm=self.pm, pb=self.pb)
         if self.verbose:
-          print('Selected operation is mutation.\n Mutated {} into {}'.format(Xi, C))
+          print('Selected operation is mutation.\n Mutated {} into {}'.format(Xi.id, C))
 
       Xmin = min(self.pop, key=lambda i: self.fitness(i))
       replace = self.fitness(C) / (self.fitness(C) + self.fitness(Xmin))
       keep = 1 - replace
       choice = np.random.choice(2, p=[replace, keep])
 
+      if C.k == 0:
+        if self.verbose:
+          print('Bad strand generated! Aborting...')
+        continue
+
       if choice == 0:
-        Xmin = C
+        self.pop.remove(Xmin)
+        self.pop.append(C)
         if self.verbose:
           print('Replaced minimum-fitness strand with {}'.format(C))
 
@@ -77,43 +87,56 @@ class GeneticAlgorithm:
       else:
         stalls += 1
 
+      self.fitseries.append(self.fitness(self.Xbest))
+      if self.verbose:
+        print('Best fitness so far: {}'.format(self.fitness(self.Xbest)))
+
       if stalls > self.max_stalls:
+        exit_status = 1
         break
+
+    if exit_status == 1:
+      print('\nStopped execution by reaching max generations {}')
+    else:
+      print('\nStopped execution due to best fitness not being improved in the last {} generations'.format(self.max_stalls))
+    print('\nFound best strand {} with fitness = {}'.format(self.Xbest, self.fitness(self.Xbest)))
 
 # =============================================================================
 
 class Individual:
 
-  def __init__(self, series, ks, parentA=None, parentB=None, crossover=None):
+  def __init__(self, series, ks, parentA=None, parentB=None, method=None, pm=None, pb=None):
+    # ''.join(list(np.random.choice(list(string.ascii_uppercase),3)))
+    self.id = np.random.randint(1000,9999)
     self.series = series
     T = len(series)
 
-    if crossover == None:
+    if method == None:
       bs = random.sample(range(T), ks)
+      self.trace = '[]'
       self.B = [i if i in bs else '*' for i in range(T)]
-    elif crossover == 'uniform':
-      choices = np.random.choice(2, T, p=[0.5, 0.5])
-      self.B = [parentA.B[i] if choices[i] == 0 else parentB.B[i] for i in choices]
-    elif crossover == 'one-point':
+    elif method == 'uc':
+      choices = np.random.choice(2, T)
+      self.trace = '[{}+{}]'.format(parentA.id, parentB.id)
+      self.B = [parentA.B[i] if choices[i] == 0 else parentB.B[i] for i in range(T)]
+    elif method == 'opc':
       point = random.choice(range(T))
+      self.trace = '[{}+{}]'.format(parentA.id, parentB.id)
       self.B = [parentA.B[i] if i < point else parentB.B[i] for i in range(T)]
+    elif method == 'm':
+      pe = 1-pb
+      choices = np.random.choice(3, len(parentA.B), p=[pm*pb, pm*pe, 1-pm])
+      self.trace = '[{}->{}]'.format(parentA.id, self.id)
+      self.B = [i if choices[i] == 0 else '*' if choices[i] == 1 else parentA.B[i] for i in range(len(parentA.B))]
 
     self._make_attr_()
 
   def __str__(self):
-    return '<B:{}, b:{}, k:{}>'.format(self.B, self.b, self.k)
+    return '<id:{}, trace:{}, B:{}, k:{}>'.format(self.id, self.trace, self.B, self.k)
 
   def _make_attr_(self):
     self.b = [i for i in self.B if i != '*']
     self.k = len(self.b)
-
-  def mutation(self, pm, pb):
-    pe = 1-pb
-    choices = np.random.choice(3, len(self.B), p=[pm*pb, pm*pe, 1-pm])
-    self.B = [i if choices[i] == 0 else '*' if choices[i] == 1 else self.B[i] for i in choices]
-    self._make_attr_()
-
-    return self
 
   def y(self, i):
     return self.series[i]

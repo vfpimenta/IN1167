@@ -1,5 +1,6 @@
 import ga
 import csv
+import matplotlib.pyplot as plt
 
 def main():
   series = list()
@@ -11,7 +12,8 @@ def main():
   model = ga.GeneticAlgorithm(series, 4, 5, verbose=True)
   model.run()
 
-  print(model.Xbest)
+  plt.plot(model.fitseries)
+  plt.show()
 
 if __name__ == '__main__':
   main()
