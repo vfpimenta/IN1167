@@ -9,7 +9,7 @@ def main():
     for row in spamreader:
       series.append(float(row[0]))
 
-  model = ga.GeneticAlgorithm(series, 4, 5, verbose=True)
+  model = ga.GeneticAlgorithm(series)
   model.run()
 
   plt.plot(model.fitseries)

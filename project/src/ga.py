@@ -6,21 +6,31 @@ import numpy as np
 
 class GeneticAlgorithm:
 
-  def __init__(self, series, M, ks, verbose=False):
+  def __init__(self, series, M=50, ks=None, verbose=False):
+    if ks == None:
+      ks = random.randint(1,20)
+
     self.Xbest = Individual(series, ks)
     self.fitseries = list()
     self.series = series
     self.ks = ks
 
     self.pop = [Individual(series, ks) for i in range(M)]
-    self.alpha = random.random()
-    self.puc = random.random()
-    self.popc = random.random()
-    self.pmu = random.random()
-    self.pm = random.random()
-    self.pb = random.random()
+    if 1 <= ks <= 6:
+      self.alpha = random.uniform(.2, .3)
+      self.pmu = random.uniform(.4, .5)
+      self.popc = (1-self.pmu)/3
+      self.puc = 2*self.popc
+    elif ks > 6:
+      self.alpha = .1
+      self.pmu = .3
+      self.popc = (1-self.pmu)/2
+      self.puc = (1-self.pmu)/2
 
-    self.rounds = 1000
+    self.pm = ks/len(series)
+    self.pb = .6
+
+    self.rounds = 20000
     self.max_stalls = 100
     self.verbose = verbose
   
@@ -96,7 +106,7 @@ class GeneticAlgorithm:
         break
 
     if exit_status == 1:
-      print('\nStopped execution by reaching max generations {}')
+      print('\nStopped execution by reaching max generations {}'.format(self.rounds))
     else:
       print('\nStopped execution due to best fitness not being improved in the last {} generations'.format(self.max_stalls))
     print('\nFound best strand {} with fitness = {}'.format(self.Xbest, self.fitness(self.Xbest)))
