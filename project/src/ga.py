@@ -1,14 +1,19 @@
 import random
 import string
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # =============================================================================
 
 class GeneticAlgorithm:
 
-  def __init__(self, series, M=50, ks=None, verbose=False):
+  def __init__(self, series, M=50, ks=None, verbose=False, halt=False):
     if ks == None:
       ks = random.randint(1,20)
+      self.kmax = None
+    else:
+      self.kmax = ks
 
     self.Xbest = Individual(series, ks)
     self.fitseries = list()
@@ -33,9 +38,17 @@ class GeneticAlgorithm:
     self.rounds = 20000
     self.max_stalls = 100
     self.verbose = verbose
+    self.halt = halt
   
-  def fitness(self, X):
-    return g(X) + self.alpha * p(X.k)
+  def fitness(self, X, plot=False):
+    ax = None
+    if plot:
+      fig, ax = plt.subplots()
+      ax.plot(self.series)
+    result = g(X,plot,ax) + self.alpha * p(X.k, self.kmax)
+    if plot:
+      plt.show()
+    return result
 
   def get_individual(self, n):
     probabilities = list(map(lambda i: self.fitness(i), self.pop))
@@ -105,6 +118,9 @@ class GeneticAlgorithm:
         exit_status = 1
         break
 
+      if self.halt:
+        input()
+
     if exit_status == 1:
       print('\nStopped execution by reaching max generations {}'.format(self.rounds))
     else:
@@ -142,7 +158,7 @@ class Individual:
     self._make_attr_()
 
   def __str__(self):
-    return '<id:{}, trace:{}, B:{}, k:{}>'.format(self.id, self.trace, self.B, self.k)
+    return '<id:{}, trace:{}, b:{}, k:{}>'.format(self.id, self.trace, self.b, self.k)
 
   def _make_attr_(self):
     self.b = [i for i in self.B if i != '*']
@@ -156,20 +172,40 @@ class Individual:
 def make_prob_list(l):
   return list(map(lambda el: el/sum(l), l))
 
-def g(X):
-  return (area(X) - sum([area(X, j) for j in range(0, X.k-1)])) / area(X)
+def ziplist(X):
+  l = list()
+  if 0 not in X.b:
+    l.append((0,X.b[0]))
+  if len(X.B)-1 not in X.b:
+    l.append((X.b[-1],len(X.B)-1))
+  for i in range(X.k-1):
+    l.append((X.b[i],X.b[i+1]))
+  return l
 
-def p(k):
-  return 1/np.sqrt(k)
+def g(X, plot, ax):
+  return (area(X) - sum([area(X, j0, j1, plot, ax) for j0, j1 in ziplist(X)])) / area(X)
 
-def area(X, j=None):
-  if j == None:
+def p(k, kmax):
+  if kmax == None: 
+    return 1/np.sqrt(k)
+  else:
+    return max(0,(kmax-k+1)/kmax)
+
+def area(X, j0=None, j1=None, plot=False, ax=None):
+  if j0 == None:
     return (len(X.B)) * (max(X.series) - min(X.series))
   else:
     try:
-      m0 = min(list(map(X.y, range(X.b[j],X.b[j+1]))))
-      m1 = max(list(map(X.y, range(X.b[j],X.b[j+1]))))
-      return (X.b[j+1] - X.b[j]) * (m1 - m0)
+      m0 = min(list(map(X.y, range(j0, j1))))
+      m1 = max(list(map(X.y, range(j0, j1))))
+      if plot:
+        ax.add_patch(patches.Rectangle(
+          (j0, m0),
+          j1 - j0,
+          m1-m0,
+          fill=False
+        ))
+      return (j1 - j0) * (m1 - m0)
     except ValueError as e:
       print(X)
       raise e
