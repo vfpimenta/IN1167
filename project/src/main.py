@@ -14,7 +14,7 @@ def read():
 def main():
   series = read()
 
-  model = ga.GeneticAlgorithm(series, ks=4, verbose=True, halt=True)
+  model = ga.GeneticAlgorithm(series, ks=4)
   model.run()
 
   plt.plot(model.fitseries)
