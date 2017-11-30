@@ -39,15 +39,10 @@ class GeneticAlgorithm:
     self.verbose = verbose
     self.halt = halt
   
-  def fitness(self, X, plot=False):
-    ax = None
+  def fitness(self, X, plot=False, ax=None):
     if plot:
-      fig, ax = plt.subplots()
       ax.plot(self.series)
-    result = max(sys.float_info.min, g(X,plot,ax) - self.alpha * p(X.k, self.kmax))
-    if plot:
-      plt.show()
-    return result
+    return max(sys.float_info.min, g(X,plot,ax) - self.alpha * p(X.k, self.kmax))
 
   def get_individual(self, n):
     probabilities = list(map(lambda i: self.fitness(i), self.pop))
@@ -141,36 +136,22 @@ class Individual:
 
     if method == None:
       bs = random.sample(range(T), ks)
-      while not self.width_constraint(bs):
-        bs = random.sample(range(T), ks)
       self.trace = '[]'
       self.B = [i if i in bs else '*' for i in range(T)]
     elif method == 'uc':
       choices = np.random.choice(2, T)
       self.trace = '[{}+{}]'.format(parentA.id, parentB.id)
       self.B = [parentA.B[i] if choices[i] == 0 else parentB.B[i] for i in range(T)]
-      while not self.width_constraint([i for i in self.B if i != '*']):
-        choices = np.random.choice(2, T)
-        self.trace = '[{}+{}]'.format(parentA.id, parentB.id)
-        self.B = [parentA.B[i] if choices[i] == 0 else parentB.B[i] for i in range(T)]
     elif method == 'opc':
       point = random.choice(range(T))
       self.trace = '[{}+{}]'.format(parentA.id, parentB.id)
       self.B = [parentA.B[i] if i < point else parentB.B[i] for i in range(T)]
-      while not self.width_constraint([i for i in self.B if i != '*']):
-        point = random.choice(range(T))
-        self.trace = '[{}+{}]'.format(parentA.id, parentB.id)
-        self.B = [parentA.B[i] if i < point else parentB.B[i] for i in range(T)]
     elif method == 'm':
       pe = 1-pb
       pm = 2*parentA.k/T
       choices = np.random.choice(3, len(parentA.B), p=[pm*pb, pm*pe, 1-pm])
       self.trace = '[{}->{}]'.format(parentA.id, self.id)
       self.B = [i if choices[i] == 0 else '*' if choices[i] == 1 else parentA.B[i] for i in range(len(parentA.B))]
-      while not self.width_constraint([i for i in self.B if i != '*']):
-        choices = np.random.choice(3, len(parentA.B), p=[pm*pb, pm*pe, 1-pm])
-        self.trace = '[{}->{}]'.format(parentA.id, self.id)
-        self.B = [i if choices[i] == 0 else '*' if choices[i] == 1 else parentA.B[i] for i in range(len(parentA.B))]
 
     self._make_attr_()
 
@@ -184,26 +165,19 @@ class Individual:
   def y(self, i):
     return self.series[i]
 
-  def width_constraint(self, l):
-    for i in range(len(l)-1):
-      if l[i+1] - l[i] < self.min_width:
-        return False
-
-    return True
-
 # =============================================================================
 
 def make_prob_list(l):
   return list(map(lambda el: el/sum(l), l))
 
-def ziplist(X, padding=5):
+def ziplist(X, padding=0):
   l = list()
-  if X.b[0] > 5:
-    l.append((0,X.b[0]-5))
-  if X.b[-1] < len(X.B)-6:
-    l.append((X.b[-1]+5,len(X.B)-1))
+  if X.b[0] > padding:
+    l.append((0,X.b[0]-padding))
+  if X.b[-1] < len(X.B)-1-padding:
+    l.append((X.b[-1]+padding,len(X.B)-1))
   for i in range(X.k-1):
-    l.append((X.b[i]+5,X.b[i+1]-5))
+    l.append((X.b[i]+padding,X.b[i+1]-padding))
   return l
 
 def g(X, plot, ax):

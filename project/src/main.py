@@ -2,9 +2,9 @@ import ga
 import csv
 import matplotlib.pyplot as plt
 
-def read():
+def read(n):
   series = list()
-  with open('../data/series.csv') as csvfile:
+  with open('../data/series_{}.csv'.format(n)) as csvfile:
     spamreader = csv.reader(csvfile)
     for row in spamreader:
       series.append(float(row[0]))
@@ -12,13 +12,22 @@ def read():
   return series
 
 def main():
-  series = read()
+  for ks in [5,9,11]:  
+    print('> Running series ks = {}...\n\n'.format(ks))
+    series = read(ks)
 
-  model = ga.GeneticAlgorithm(series, ks=4)
-  model.run()
+    model = ga.GeneticAlgorithm(series, ks=ks, verbose=1)
+    model.run()
 
-  plt.plot(model.fitseries)
-  plt.show()
+    fig, ax = plt.subplots( nrows=1, ncols=1 )
+    ax.plot(model.fitseries)
+    fig.savefig('fitseries_{}.png'.format(ks), bbox_inches='tight')
+    plt.close(fig)
+
+    fig, ax = plt.subplots( nrows=1, ncols=1 )
+    model.fitness(model.Xbest, True, ax)
+    fig.savefig('best_strand_{}.png'.format(ks), bbox_inches='tight')
+    plt.close(fig)
 
 if __name__ == '__main__':
   main()
