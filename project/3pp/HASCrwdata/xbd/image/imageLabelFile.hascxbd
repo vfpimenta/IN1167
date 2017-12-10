@@ -1,0 +1,91 @@
+<model.BlockDiagram>
+  <blocks>
+    <model.BeanBlock>
+      <name>reader</name>
+      <class>jp.hasc.hasctool.core.runtime.source.LineReaderSource</class>
+      <properties>
+        <entry>
+          <string>filePath</string>
+          <string>$(inputFile.path)</string>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>csvToLabel</name>
+      <class>jp.hasc.hasctool.core.runtime.filter.file.CSVToLabelFilter</class>
+      <properties/>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>targetFileReader</name>
+      <class>jp.hasc.hasctool.core.runtime.filter.file.label.TargetFileReader</class>
+      <properties/>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>csvToVector</name>
+      <class>jp.hasc.hasctool.core.runtime.filter.file.CSVToVectorFilter</class>
+      <properties/>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>concatVL</name>
+      <class>jp.hasc.hasctool.core.runtime.filter.ConcatenateVectorAndLabelFilter</class>
+      <properties>
+        <entry>
+          <string>outputByRelativeTime</string>
+          <boolean>true</boolean>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>ImgWriter</name>
+      <class>jp.hasc.hasctool.ui.views.WaveImageWidget</class>
+      <properties>
+        <entry>
+          <string>filePath</string>
+          <string>$(projectRoot)/temp/wvimg_output.png</string>
+        </entry>
+        <entry>
+          <string>viewTimeMax</string>
+          <long>460000000</long>
+        </entry>
+        <entry>
+          <string>viewTimeWidth</string>
+          <long>460000000</long>
+        </entry>
+        <entry>
+          <string>maxValue</string>
+          <double>2.0</double>
+        </entry>
+        <entry>
+          <string>minValue</string>
+          <double>-2.0</double>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+  </blocks>
+  <connections>
+    <model.Connection>
+      <output blockName="reader" portName="outputPort"/>
+      <input blockName="csvToLabel" portName="inputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="csvToLabel" portName="outputPort"/>
+      <input blockName="concatVL" portName="labelInputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="reader" portName="outputPort"/>
+      <input blockName="targetFileReader" portName="inputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="targetFileReader" portName="outputPort"/>
+      <input blockName="csvToVector" portName="inputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="concatVL" portName="outputPort"/>
+      <input blockName="ImgWriter" portName="inputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="csvToVector" portName="outputPort"/>
+      <input blockName="concatVL" portName="vectorInputPort"/>
+    </model.Connection>
+  </connections>
+</model.BlockDiagram>

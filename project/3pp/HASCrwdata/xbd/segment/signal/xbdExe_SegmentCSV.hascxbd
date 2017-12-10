@@ -1,0 +1,63 @@
+<model.BlockDiagram>
+  <comment>XbdExecutorのテスト（外側）。sampleData/0_sequence以下のcsvファイルを順に列挙し、temp/xbdBlockTest1_out 以下に出力する。reader.filePathプロパティと writer.filePathプロパティをセットするようなXbdExecutionRequestメッセージをXbdExecutorに渡して、xbdExecutionTest1Inner.hascxbdをバッチ実行する</comment>
+  <blocks>
+    <model.BeanBlock>
+      <name>find_files</name>
+      <class>jp.hasc.hasctool.core.runtime.hierarchize.FolderFileFinder</class>
+      <properties>
+        <entry>
+          <string>recursive</string>
+          <boolean>true</boolean>
+        </entry>
+        <entry>
+          <string>folderPath</string>
+          <string>$(projectRoot)/rwActData/person671-a</string>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>filter_Label_files</name>
+      <class>jp.hasc.hasctool.core.runtime.hierarchize.RegexStringFilter</class>
+      <properties>
+        <entry>
+          <string>regex</string>
+          <string>\.label$</string>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>set_reader_filePath</name>
+      <class>jp.hasc.hasctool.core.runtime.hierarchize.XERequestCreationFilter</class>
+      <properties>
+        <entry>
+          <string>propertyName</string>
+          <string>reader.filePath</string>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+    <model.BeanBlock>
+      <name>XbdExecutor</name>
+      <class>jp.hasc.hasctool.core.runtime.hierarchize.XbdExecutor</class>
+      <properties>
+        <entry>
+          <string>defaultXbdFilePath</string>
+          <string>segmentFile.hascxbd</string>
+        </entry>
+      </properties>
+    </model.BeanBlock>
+  </blocks>
+  <connections>
+    <model.Connection>
+      <output blockName="find_files" portName="outputPort"/>
+      <input blockName="filter_Label_files" portName="inputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="filter_Label_files" portName="outputPort"/>
+      <input blockName="set_reader_filePath" portName="inputPort"/>
+    </model.Connection>
+    <model.Connection>
+      <output blockName="set_reader_filePath" portName="outputPort"/>
+      <input blockName="XbdExecutor" portName="inputPort"/>
+    </model.Connection>
+  </connections>
+</model.BlockDiagram>

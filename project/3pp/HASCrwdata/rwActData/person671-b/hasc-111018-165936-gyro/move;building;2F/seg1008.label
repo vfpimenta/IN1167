@@ -1,0 +1,4 @@
+#targetfile:$(projectRoot)/rwActData/person671-b/hasc-111018-165936-gyro/move;building;2F/seg1008.csv
+5279.308,5281.812,stay
+5282.791,5285.715,walk;outdoor
+5288.024,5293.109,walk;floor;2F

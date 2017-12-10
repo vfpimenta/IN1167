@@ -4,11 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+import util
+
 # =============================================================================
 
 class GeneticAlgorithm:
 
-  def __init__(self, series, M=50, ks=None, verbose=0, halt=False):
+  def __init__(self, series, M=50, ks=None, verbose=False, halt=False, progress=False):
     if ks == None:
       ks = random.randint(1,20)
       self.kmax = None
@@ -38,11 +40,12 @@ class GeneticAlgorithm:
     self.max_stalls = 800
     self.verbose = verbose
     self.halt = halt
+    self.progress = progress
   
   def fitness(self, X, plot=False, ax=None):
     if plot:
       ax.plot(self.series)
-    return max(sys.float_info.min, g(X,plot,ax) - self.alpha * p(X.k, self.kmax))
+    return g(X,plot,ax) + self.alpha * p(X.k, self.kmax)
 
   def get_individual(self, n):
     probabilities = list(map(lambda i: self.fitness(i), self.pop))
@@ -56,10 +59,10 @@ class GeneticAlgorithm:
     stalls = 0
     exit_status = 0
 
-    for i in range(self.rounds):
-      if self.verbose >= 1:
+    i = 0
+    while i < self.rounds:
+      if self.verbose:
         print('Running round {} out of {}...'.format(i+1,self.rounds))
-      if self.verbose >= 2:
         print('\nCurrent population:\n')
         for ind in self.pop:
           print('{} :: fitness={}'.format(ind,str(self.fitness(ind))))
@@ -69,22 +72,22 @@ class GeneticAlgorithm:
       if operation == 0:
         Xi, Xj = self.get_individual(2)
         C = Individual(self.series, self.ks, Xi, Xj, method='uc')
-        if self.verbose >= 2:
+        if self.verbose:
           print('Selected operation is uniform crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi.id, Xj.id, C))
       elif operation == 1:
         Xi, Xj = self.get_individual(2)
         C = Individual(self.series, self.ks, Xi, Xj, method='opc')
 
-        if self.verbose >= 2:
+        if self.verbose:
           print('Selected operation is one-point crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi.id, Xj.id, C))
       else:
         Xi = self.get_individual(1)
         C = Individual(self.series, self.ks, Xi, method='m', pb=self.pb)
-        if self.verbose >= 2:
+        if self.verbose:
           print('Selected operation is mutation.\n Mutated {} into {}'.format(Xi.id, C))
 
-      if C.k == 0:
-        if self.verbose >= 2:
+      if C.k == 0 or C.k > len(self.series)/100 or (self.kmax != None and C.k > self.kmax):
+        if self.verbose:
           print('Bad strand generated! Aborting...')
         continue
 
@@ -97,7 +100,7 @@ class GeneticAlgorithm:
       if choice == 0:
         self.pop.remove(Xmin)
         self.pop.append(C)
-        if self.verbose >= 2:
+        if self.verbose:
           print('Replaced minimum-fitness strand with {}'.format(C))
 
       Xmax = max(self.pop, key=lambda i: self.fitness(i))
@@ -108,7 +111,7 @@ class GeneticAlgorithm:
         stalls += 1
 
       self.fitseries.append(self.fitness(self.Xbest))
-      if self.verbose >= 2:
+      if self.verbose:
         print('Best fitness so far: {}'.format(self.fitness(self.Xbest)))
 
       if stalls > self.max_stalls:
@@ -117,6 +120,10 @@ class GeneticAlgorithm:
 
       if self.halt:
         input()
+
+      i += 1
+      if self.progress:
+        util.printProgressBar(i, self.rounds, prefix='Running GA', suffix='Generations')
 
     if exit_status == 0:
       print('\nStopped execution by reaching max generations {}'.format(self.rounds))
@@ -187,7 +194,7 @@ def p(k, kmax):
   if kmax == None: 
     return 1/np.sqrt(k)
   else:
-    return np.abs((kmax-k+1)/kmax)
+    return max(0, (kmax-k+1)/kmax)
 
 def area(X, j0=None, j1=None, plot=False, ax=None):
   if j0 == None:

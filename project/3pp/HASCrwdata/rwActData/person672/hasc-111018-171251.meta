@@ -1,0 +1,13 @@
+TerminalType:Apple;iPhone 4G
+Frequency(Hz):100
+Gender:male
+Generation:20;early
+Height(cm):173
+Weight(kg):67
+Shoes:sneakers
+TerminalMount:fixed
+TerminalPosition:waist
+AttachmentDirection:right
+Weather:fine
+Start:stationTicketGate
+Goal:building4F

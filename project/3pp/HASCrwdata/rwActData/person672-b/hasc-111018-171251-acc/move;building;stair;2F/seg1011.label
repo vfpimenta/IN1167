@@ -1,0 +1,4 @@
+#targetfile:$(projectRoot)/rwActData/person672-b/hasc-111018-171251-acc/move;building;stair;2F/seg1011.csv
+6062.317,6064.077,stay
+6064.732,6072.537,stairUp;steps;12
+6079.878,6088.757,stairUp;steps;13

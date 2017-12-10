@@ -1,0 +1,3 @@
+#targetfile:$(projectRoot)/rwActData/person671-b/hasc-111018-165936-gyro/move;building;elevator;2F/seg1012.csv
+5334.224,5336.147,stay
+5337.78,5340.465,walk;floor;2F
