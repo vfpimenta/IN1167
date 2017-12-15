@@ -19,12 +19,3 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 2, 
     # Print New Line on Complete
     if iteration == total: 
         print()
-
-def timing(f):
-    def wrap(*args, **kwargs):
-        time1 = time.time()
-        ret = f(*args, **kwargs)
-        time2 = time.time()
-        print('{} function took {} ms'.format(f.__name__, (time2-time1)*1000.0))
-        return ret
-    return wrap

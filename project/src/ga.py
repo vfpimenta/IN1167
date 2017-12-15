@@ -131,6 +131,13 @@ class GeneticAlgorithm:
       print('\nStopped execution due to best fitness not being improved in the last {} generations'.format(self.max_stalls))
     print('\nFound best strand {} with fitness = {}'.format(self.Xbest, self.fitness(self.Xbest)))
 
+  def score(self):
+    score = list()
+    for i in range(len(self.series)):
+      score.append(sum(b != '*' for b in [ind.B[i] for ind in self.pop])/len(self.series))
+
+    return score
+
 # =============================================================================
 
 class Individual:
