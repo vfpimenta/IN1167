@@ -1,5 +1,6 @@
 import random
 import sys
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -45,7 +46,14 @@ class GeneticAlgorithm:
   def fitness(self, X, plot=False, ax=None):
     if plot:
       ax.plot(self.series)
-    return g(X,plot,ax) + self.alpha * p(X.k, self.kmax)
+      return g(X,plot,ax) + self.alpha * p(X.k, self.kmax)
+
+    if X.fitness:
+      return X.fitness
+    else:
+      fitness = g(X,plot,ax) + self.alpha * p(X.k, self.kmax)
+      X.fitness = fitness
+      return fitness
 
   def get_individual(self, n):
     probabilities = list(map(lambda i: self.fitness(i), self.pop))
@@ -54,6 +62,19 @@ class GeneticAlgorithm:
       return tuple([self.pop[i] for i in choices])
     elif n == 1:
       return self.pop[choices[0]]
+
+  def valid(self, Individual):
+    constraints = {
+      'min k': lambda i: False if i.k == 0 else True,
+      'chosen max k': lambda i: False if (self.kmax != None and i.k > self.kmax) else True,
+      'series max k': lambda i: False if i.k > len(self.series)/100 else True,
+      'repeated i': lambda i: False if any([x.B == i.B for x in self.pop]) else True
+    }
+    for key in constraints.keys():
+      if not constraints[key](Individual):
+        return False
+
+    return True
 
   def run(self):
     stalls = 0
@@ -72,6 +93,7 @@ class GeneticAlgorithm:
       if operation == 0:
         Xi, Xj = self.get_individual(2)
         C = Individual(self.series, self.ks, Xi, Xj, method='uc')
+
         if self.verbose:
           print('Selected operation is uniform crossover.\nCreating new strand with parents {} and {}...\nObtained: {}'.format(Xi.id, Xj.id, C))
       elif operation == 1:
@@ -83,10 +105,11 @@ class GeneticAlgorithm:
       else:
         Xi = self.get_individual(1)
         C = Individual(self.series, self.ks, Xi, method='m', pb=self.pb)
+
         if self.verbose:
           print('Selected operation is mutation.\n Mutated {} into {}'.format(Xi.id, C))
 
-      if C.k == 0 or C.k > len(self.series)/100 or (self.kmax != None and C.k > self.kmax):
+      if not self.valid(C):
         if self.verbose:
           print('Bad strand generated! Aborting...')
         continue
@@ -95,7 +118,6 @@ class GeneticAlgorithm:
       replace = self.fitness(C) / (self.fitness(C) + self.fitness(Xmin))
       keep = 1 - replace
       choice = np.random.choice(2, p=[replace, keep])
-      
 
       if choice == 0:
         self.pop.remove(Xmin)
@@ -134,7 +156,7 @@ class GeneticAlgorithm:
   def score(self):
     score = list()
     for i in range(len(self.series)):
-      score.append(sum(b != '*' for b in [ind.B[i] for ind in self.pop])/len(self.series))
+      score.append(sum(b != '*' for b in [ind.B[i] for ind in self.pop])/len(self.pop))
 
     return score
 
@@ -147,6 +169,8 @@ class Individual:
     self.series = series
     self.min_width = len(series)/10
     T = len(series)
+
+    self.fitness = None
 
     if method == None:
       bs = random.sample(range(T), ks)
@@ -184,14 +208,17 @@ class Individual:
 def make_prob_list(l):
   return list(map(lambda el: el/sum(l), l))
 
-def ziplist(X, padding=0):
+def ziplist(X, padding=2):
   l = list()
   if X.b[0] > padding:
     l.append((0,X.b[0]-padding))
   if X.b[-1] < len(X.B)-1-padding:
     l.append((X.b[-1]+padding,len(X.B)-1))
   for i in range(X.k-1):
-    l.append((X.b[i]+padding,X.b[i+1]-padding))
+    if X.b[i]+padding < X.b[i+1]-padding:
+      l.append((X.b[i]+padding,X.b[i+1]-padding))
+    else:
+      l.append((X.b[i],X.b[i+1]))
   return l
 
 def g(X, plot, ax):

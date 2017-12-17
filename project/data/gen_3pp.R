@@ -7,7 +7,7 @@ l2.norm <- function(l) {
 	sqrt(sum(l ^ 2))
 }
 
-data <- read.csv('../3pp/HASCrwdata/rwActData/person671/hasc-111018-165936-acc.csv')
+data <- read.csv('../3pp/HASCrwdata/rwActData/person671/hasc-111018-165936-mag.csv')
 
 series <- c()
 for (i in 1:dim(data)[1]) {
@@ -16,4 +16,4 @@ for (i in 1:dim(data)[1]) {
 }
 
 plot(series, type='l')
-write.table(series,file='series/series_3pp.csv',row.names=FALSE,col.names=FALSE)
+write.table(series,file='series/series_3pp_mag.csv',row.names=FALSE,col.names=FALSE)

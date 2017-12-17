@@ -8,7 +8,7 @@ parser = OptionParser()
 parser.add_option('-k', '--kmax', dest='ks', type='int',
     help='Number of break points.', metavar='NUMBER')
 parser.add_option('-s', '--series', dest='series', type='str',
-    help='Target series [cf|jm|sv].', metavar='CHARACTER')
+    help='Target series [cf|jm|sv|3pp].', metavar='CHARACTER')
 
 (options, args) = parser.parse_args()
 
@@ -32,54 +32,47 @@ def read(n):
 def main():
   if not options.series == None:
     series = read(options.series)
-
-    model = ga.GeneticAlgorithm(series, ks=options.ks, halt=True)
-    model.run()
-
-    fig, ax = plt.subplots( nrows=1, ncols=1 )
-    ax.plot(model.fitseries)
-    fig.savefig('../tests/fitseries_{}.png'.format(options.series), bbox_inches='tight')
-    plt.close(fig)
-
-    fig, ax = plt.subplots( nrows=1, ncols=1 )
-    model.fitness(model.Xbest, True, ax)
-    fig.savefig('../tests/best_strand_{}.png'.format(options.series), bbox_inches='tight')
-    plt.close(fig)
+    fname = options.series
   elif not options.ks == None:
     print('Running series ks = {}...\n\n'.format(options.ks))
     series = read(options.ks)
-
-    model = ga.GeneticAlgorithm(series, ks=options.ks, halt=True)
-    model.run()
-
-    fig, ax = plt.subplots( nrows=1, ncols=1 )
-    ax.plot(model.fitseries)
-    fig.savefig('../tests/fitseries_{}.png'.format(options.ks), bbox_inches='tight')
-    plt.close(fig)
-
-    fig, ax = plt.subplots( nrows=1, ncols=1 )
-    model.fitness(model.Xbest, True, ax)
-    fig.savefig('../tests/best_strand_{}.png'.format(options.ks), bbox_inches='tight')
-    plt.close(fig)
-
-    fig, ax = plt.subplots( nrows=1, ncols=1 )
-    ax.plot(model.score)
-    fig.savefig('../tests/score_{}.png'.format(options.ks), bbox_inches='tight')
-    plt.close(fig)
-
-    tpr, fpr, roc_auc = ROC(model.score)
-    fig, ax = plt.subplots( nrows=1, ncols=1 )
-    ax.plot(fpr, tpr, color='darkorange', label='ROC curve (area = {})'.format(roc_auc))
-    ax.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.legend(loc="lower right")
-    fig.savefig('../tests/score_{}.png'.format(options.ks), bbox_inches='tight')
-    plt.close(fig)
+    fname = options.ks
   else:
     raise Exception('Unknown arguments!')
+
+  model = ga.GeneticAlgorithm(series, ks=options.ks, progress=True)
+  model.run()
+
+  # Basic info
+  fig, ax = plt.subplots( nrows=1, ncols=1 )
+  ax.plot(model.fitseries)
+  fig.savefig('../tests/fitness/fitseries_{}.png'.format(fname), bbox_inches='tight')
+  plt.close(fig)
+
+  fig, ax = plt.subplots( nrows=1, ncols=1 )
+  model.fitness(model.Xbest, True, ax)
+  fig.savefig('../tests/best/best_strand_{}.png'.format(fname), bbox_inches='tight')
+  plt.close(fig)
+
+  # Analysis
+  score = model.score()
+  fig, ax = plt.subplots( nrows=1, ncols=1 )
+  ax.plot(score, color='red')
+  fig.savefig('../tests/ROC/score_{}.png'.format(fname), bbox_inches='tight')
+  plt.close(fig)
+
+  tpr, fpr, roc_auc = ROC(score)
+  fig, ax = plt.subplots( nrows=1, ncols=1 )
+  ax.plot(fpr, tpr, color='darkorange', label='ROC curve (area = {})'.format(roc_auc))
+  ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+  plt.xlim([0.0, 1.0])
+  plt.ylim([0.0, 1.05])
+  plt.xlabel('False Positive Rate')
+  plt.ylabel('True Positive Rate')
+  plt.legend(loc="lower right")
+  fig.savefig('../tests/ROC/roc_{}.png'.format(fname), bbox_inches='tight')
+  plt.close(fig)
+  
 
 if __name__ == '__main__':
   main()
